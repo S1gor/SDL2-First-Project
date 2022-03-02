@@ -1,5 +1,6 @@
 #include <iostream>
 #include <SDL.h>
+#include <SDL_image.h>
 
 SDL_Window* win = NULL;
 SDL_Renderer* ren = NULL;
@@ -9,6 +10,7 @@ void DeInit(int error)
 {
 	if (ren != NULL) SDL_DestroyRenderer(ren);
 	if (win != NULL) SDL_DestroyWindow(win);
+	IMG_Quit();
 	SDL_Quit();
 	exit(error);
 }
@@ -21,7 +23,16 @@ void Init()
 		DeInit(1);
 	}
 
-	win = SDL_CreateWindow("window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	int res;
+	if ((res = (IMG_INIT_PNG | IMG_INIT_JPG)) == 0)
+	{
+		printf("Не удалось инициализировать SDL_Image!");
+		DeInit(1);
+	}
+	if (res & IMG_INIT_PNG) printf("Инициализирована библиотека PNG.\n"); else printf("Не удалось инициализировать библиотеку PNG.");
+	if (res & IMG_INIT_JPG) printf("Инициализирована библиотека JPG.\n"); else printf("Не удалось инициализировать библиотеку JPG.");
+
+	win = SDL_CreateWindow("SDL window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (win == NULL)
 	{
 		printf("Не удалось создать окно!");
@@ -46,6 +57,15 @@ int main(int args, char* argv[])
 {
 	system("chcp 1251"); system("cls");
 	Init();
+
+	SDL_Surface* surface = IMG_Load("diablo.jpg");
+	if (surface == NULL)
+	{
+		printf("Не удалось загрузить картинку!");
+		DeInit(1);
+	}
+	SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surface);
+	SDL_FreeSurface(surface);
 
 	SDL_SetRenderDrawColor(ren, 205, 205, 205, 255);
 	SDL_RenderClear(ren);
@@ -122,7 +142,7 @@ int main(int args, char* argv[])
 		if (isRightPressed && !isLeftPressed)	mousex += 5;
 		if (!isRightPressed && isLeftPressed)	mousex -= 5;
 
-		#pragma region DRAWING
+		#pragma region DRAWING CIRCLE
 		SDL_SetRenderDrawColor(ren, 205, 205, 205, 255);
 		SDL_RenderClear(ren);
 
@@ -166,9 +186,13 @@ int main(int args, char* argv[])
 			rising = !rising;
 		#pragma endregion
 
+		SDL_RenderCopy(ren, texture, NULL, NULL);
+
 		SDL_RenderPresent(ren);
 		SDL_Delay(50);
 	}
+	
+	SDL_DestroyTexture(texture);
 
 	DeInit(0);
 	return 0;
