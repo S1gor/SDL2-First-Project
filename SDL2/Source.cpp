@@ -4,7 +4,7 @@
 
 SDL_Window* win = NULL;
 SDL_Renderer* ren = NULL;
-int win_width = 1000, win_height = 900;
+int win_width = 1500, win_height = 950;
 
 void DeInit(int error)
 {
@@ -32,7 +32,7 @@ void Init()
 	if (res & IMG_INIT_PNG) printf("Инициализирована библиотека PNG.\n"); else printf("Не удалось инициализировать библиотеку PNG.");
 	if (res & IMG_INIT_JPG) printf("Инициализирована библиотека JPG.\n"); else printf("Не удалось инициализировать библиотеку JPG.");
 
-	win = SDL_CreateWindow("SDL window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	win = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (win == NULL)
 	{
 		printf("Не удалось создать окно!");
@@ -47,7 +47,7 @@ void Init()
 	}
 }
 
-SDL_Texture* loadTextyreFromFile(const char* filename, SDL_Rect* rect)
+SDL_Texture* loadTextureFromFile(const char* filename, SDL_Rect* rect)
 {
 	SDL_Surface* surface = IMG_Load(filename);
 	if (surface == NULL)
@@ -66,26 +66,34 @@ int main(int args, char* argv[])
 	system("chcp 1251"); system("cls");
 	Init();
 
-	SDL_Rect diablo_rect;
-	SDL_Texture* diablo_tex = loadTextyreFromFile("diablo.jpg", &diablo_rect);
+	SDL_Rect back_rect;
+	SDL_Texture* back_tex = loadTextureFromFile("back2.jpg", &back_rect);
+
+	SDL_Rect player_rect;
+	SDL_Texture* player_tex = loadTextureFromFile("1.png", &player_rect);
+	player_rect.w = player_rect.h;
+	int x = 0, y = 0, delta = 2;
 
 
 	SDL_Event ev;
 	bool isRunning = true;
 
-	int mousex = win_width / 2; int mousey = win_height / 2;
-	bool isUpPressed = false; bool isDownPressed = false; bool isRightPressed = false; bool isLeftPressed = false;
+	SDL_Rect dst_rect = { 0,0,0,0 };
+	int frame = 0;
+	int frame_count = 6;
+	int cur_frametime = 0;
+	int max_frametime = 1000 / 8;
+
+	int lasttime = SDL_GetTicks();
+	int newtime;
+	int dt = 0;
+
+	bool isup, isdown, isright, isleft;
+	isup = isdown = isright = isleft = false;
+	bool animate = false;
 
 	while (isRunning)
 	{
-		#pragma region DRAWING
-		SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
-		SDL_RenderClear(ren);
-
-		SDL_RenderCopy(ren, diablo_tex, &diablo_rect, NULL);
-		#pragma endregion
-
-
 		while (SDL_PollEvent(&ev))
 		{
 			switch (ev.type)
@@ -103,53 +111,62 @@ int main(int args, char* argv[])
 			case SDL_KEYDOWN:
 				switch (ev.key.keysym.scancode)
 				{
-				case SDL_SCANCODE_ESCAPE:
-					isRunning = false;
-					break;
-				case SDL_SCANCODE_RIGHT:
-					isRightPressed = true;
-					break;
-				case SDL_SCANCODE_LEFT:
-					isLeftPressed = true;
-					break;
-				case SDL_SCANCODE_UP:
-					isUpPressed = true;
-					break;
-				case SDL_SCANCODE_DOWN:
-					isDownPressed = true;
-					break;
+				case SDL_SCANCODE_ESCAPE:	isRunning = false; break;
+				case SDL_SCANCODE_RIGHT:	isright = true; break;
+				case SDL_SCANCODE_LEFT:		isleft = true; break;
+				case SDL_SCANCODE_UP:		isup = true; break;
+				case SDL_SCANCODE_DOWN:		isdown = true; break;
 				}
 				break;
 			case SDL_KEYUP:
 				switch (ev.key.keysym.scancode)
 				{
-				case SDL_SCANCODE_RIGHT:
-					isRightPressed = false;
-					break;
-				case SDL_SCANCODE_LEFT:
-					isLeftPressed = false;
-					break;
-				case SDL_SCANCODE_UP:
-					isUpPressed = false;
-					break;
-				case SDL_SCANCODE_DOWN:
-					isDownPressed = false;
-					break;
+				case SDL_SCANCODE_RIGHT:	isright = false; break;
+				case SDL_SCANCODE_LEFT:		isleft = false; break;
+				case SDL_SCANCODE_UP:		isup = false; break;
+				case SDL_SCANCODE_DOWN:		isdown = false; break;
 				}
 				break;
 			}
-		}
-		if (isUpPressed && !isDownPressed)		mousey -= 5;
-		if (!isUpPressed && isDownPressed)		mousey += 5;
-		if (isRightPressed && !isLeftPressed)	mousex += 5;
-		if (!isRightPressed && isLeftPressed)	mousex -= 5;
+			newtime = SDL_GetTicks();
+			dt = newtime - lasttime;
+			lasttime = newtime;
 
+			if (isup)		y -= delta;
+			if (isdown)		y = +delta;
+			if (isright)	x += delta;
+			if (isleft)		x -= delta;
+			animate = isup || isdown || isright || isleft;
+
+			dst_rect = { x,y,player_rect.w,player_rect.h };
+
+			#pragma region DRAWING
+			SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+			SDL_RenderClear(ren);
+
+			SDL_RenderCopy(ren, back_tex, &back_rect, NULL);
+
+			if (animate)
+			{
+				cur_frametime += dt;
+				if (cur_frametime >= max_frametime)
+				{
+					cur_frametime -= max_frametime;
+					frame = (frame + 1) % frame_count;
+					player_rect.x = player_rect.w * frame;
+				}
+			}
+
+			SDL_RenderCopy(ren, player_tex, &player_rect, &dst_rect);
+			#pragma endregion
+		}
 
 		SDL_RenderPresent(ren);
 		SDL_Delay(50);
 	}
 	
-	SDL_DestroyTexture(diablo_tex);
+	SDL_DestroyTexture(back_tex);
+	SDL_DestroyTexture(player_tex);
 
 	DeInit(0);
 	return 0;
