@@ -4,7 +4,7 @@
 
 SDL_Window* win = NULL;
 SDL_Renderer* ren = NULL;
-int win_width = 1500, win_height = 950;
+int win_width = 1260, win_height = 630;
 
 void DeInit(int error)
 {
@@ -32,7 +32,7 @@ void Init()
 	if (res & IMG_INIT_PNG) printf("Инициализирована библиотека PNG.\n"); else printf("Не удалось инициализировать библиотеку PNG.");
 	if (res & IMG_INIT_JPG) printf("Инициализирована библиотека JPG.\n"); else printf("Не удалось инициализировать библиотеку JPG.");
 
-	win = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	win = SDL_CreateWindow("s1mple", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_width, win_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (win == NULL)
 	{
 		printf("Не удалось создать окно!");
@@ -69,28 +69,11 @@ int main(int args, char* argv[])
 	SDL_Rect back_rect;
 	SDL_Texture* back_tex = loadTextureFromFile("back2.jpg", &back_rect);
 
-	SDL_Rect player_rect;
-	SDL_Texture* player_tex = loadTextureFromFile("1.png", &player_rect);
-	player_rect.w = player_rect.h;
-	int x = 0, y = 0, delta = 2;
-
-
 	SDL_Event ev;
 	bool isRunning = true;
 
-	SDL_Rect dst_rect = { 0,0,0,0 };
-	int frame = 0;
-	int frame_count = 6;
-	int cur_frametime = 0;
-	int max_frametime = 1000 / 8;
-
-	int lasttime = SDL_GetTicks();
-	int newtime;
-	int dt = 0;
-
 	bool isup, isdown, isright, isleft;
 	isup = isdown = isright = isleft = false;
-	bool animate = false;
 
 	while (isRunning)
 	{
@@ -128,45 +111,17 @@ int main(int args, char* argv[])
 				}
 				break;
 			}
-			newtime = SDL_GetTicks();
-			dt = newtime - lasttime;
-			lasttime = newtime;
-
-			if (isup)		y -= delta;
-			if (isdown)		y = +delta;
-			if (isright)	x += delta;
-			if (isleft)		x -= delta;
-			animate = isup || isdown || isright || isleft;
-
-			dst_rect = { x,y,player_rect.w,player_rect.h };
-
-			#pragma region DRAWING
-			SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+			
+			SDL_SetRenderDrawColor(ren, 255, 255,255, 255);
 			SDL_RenderClear(ren);
 
 			SDL_RenderCopy(ren, back_tex, &back_rect, NULL);
-
-			if (animate)
-			{
-				cur_frametime += dt;
-				if (cur_frametime >= max_frametime)
-				{
-					cur_frametime -= max_frametime;
-					frame = (frame + 1) % frame_count;
-					player_rect.x = player_rect.w * frame;
-				}
-			}
-
-			SDL_RenderCopy(ren, player_tex, &player_rect, &dst_rect);
-			#pragma endregion
 		}
-
 		SDL_RenderPresent(ren);
 		SDL_Delay(50);
 	}
 	
 	SDL_DestroyTexture(back_tex);
-	SDL_DestroyTexture(player_tex);
 
 	DeInit(0);
 	return 0;
